@@ -1,0 +1,12 @@
+
+# build output
+*.o
+*.so
+*.a
+
+# calbert specific directories
+/docs/*.*
+/build/*
+
+# specific files
+makefile.old
