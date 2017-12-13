@@ -1,44 +1,148 @@
+#include "list.h"
 
-/*
-// List* List_create();
-//     use malloc to allocate space for list
+List* List_create()
+{
+    return calloc(1, sizeof(List));
+}
 
-// List* List_destroy(List* list);
-//     iterate through list, destroying each node's previous sibling
-//     destroy the container list's memory
+// destroy list, but not its nodes' values!
+void List_destroy(List* list)
+{
+    LIST_FOREACH(list, first, next, cur)
+    {
+        if (cur->prev)
+        {
+            free(cur->prev);
+        }
+    }
 
-// void List_clear(List* list);
-//     iterate through list, destroying each nodes previous sibling starting with 2nd node
-//     reset pointers within first node to initial value
-//     reset list's pointers to first and last node
+    free(list->last);
+    free(list);
+}
 
-// void List_clear_destroy(List* list);
-//     iterate through list, destroying each nodes previous sibling starting with 2nd node
-//     reset pointers within first node to initial value
-//     reset list's pointers to first and last node
+// release values of nodes
+void List_clear(List* list)
+{
+    LIST_FOREACH(list, first, next, cur)
+    {
+        free(cur->value);
+    }
+}
 
+// release values of nodes, then destroy list
+void List_clear_destroy(List* list)
+{
+    LIST_FOREACH(list, first, next, cur)
+    {
+        free(cur->value);
 
-void List_push(List* list, void* value);
-    allocate space for new node
-    change n-1th nodes last pointer to new node
-    set new nodes prev pointer to n-1th node
-    change lists last pointer to new node
+        if(cur->prev)
+        {
+            free(cur->prev);
+        }
+    }
 
-void List_pop(List* list);
-    change list last to n-1th node
-    save temp ref to popped node
-    change n-1th nodes next to NULL
-    change popped node's prev, next properties
-    return popped node via its temp ref
+    free(list->last->value);
+    free(list->last);
+    free(list);
+}
+
+void List_push(List* list, void* value)
+{
+    ListNode* node = malloc(sizeof(ListNode));
+    check_mem(node);
+
+    node->value = value;
     
-void List_unshift(List* list, void* value);
-    (insert new 1st item in list)
-    allocate space for new node
-    set new nodes next to previous first node
-    set previous first nodes prev new node
-    update lists first prop
+    if(list->last == NULL)
+    {
+        list->first = node;
+        list->last = node;
+    }
+    else
+    {
+        list->last->next = node;
+        node->prev = list->last;
+        list->last = node;
+    }
 
-void List_shift(List* list);
+    list->count++;
 
-void List_remove(List* list, ListNode* node);
-*/
+    error:
+        return;
+}
+
+void List_pop(List* list)
+{
+    ListNode* node = list->last;
+    return node != NULL ? List_remove(list, node) : NULL;
+}
+
+void List_unshift(List* list, void* value)
+{
+    ListNode* node = calloc(1, sizeof(ListNode));
+    check_mem(node);
+
+    node->value = value;
+    
+    if(list->first == NULL)
+    {
+        list->first = node;
+        list->last = node;
+    }
+    else
+    {
+        node->next = list->first;
+        list->first->prev = node;
+        list->first = node;
+    }
+
+    list->count++;
+
+    error:
+        return;
+}
+
+void* List_shift(List* list)
+{
+    ListNode* node = list->first;
+    return node != NULL ? List_remove(list, node) : NULL;
+}
+
+void* List_remove(List* list, ListNode* node)
+{
+    void* result = NULL;
+
+    check(list->first && list->last, "List is empty.");
+    check(node, "node cannot be NULL.");
+
+    if(node == list->first && node == list->last)
+    {
+        list->first = NULL;
+        list->last = NULL;        
+    }
+    else if (node == list->first)
+    {
+        list->first = node->next;
+    }
+    else if (node == list->last)
+    {
+        list->last = node->prev;
+        check(list->last != NULL, "Invalid list, node's next is NULL.");
+        list->last->next = NULL;
+    }
+    else 
+    {
+        ListNode* after = node->next;
+        ListNode* before = node->prev;
+        after->prev = before;
+        before->next = after;
+    }
+
+    list->count--;
+    result = node->value;
+    free(node);
+
+    error:
+        return result;
+}
